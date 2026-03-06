@@ -15,8 +15,8 @@ jobs:
 
       - name: Install Web Dependencies
         run: |
-          npx cap add android
           npm install
+          npx cap add android
           npm install @tailwindcss/oxide-linux-x64-gnu
           npm install @capacitor/assets --save-dev
 
