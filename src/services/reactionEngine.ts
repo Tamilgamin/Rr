@@ -112,6 +112,62 @@ export const REACTION_DATABASE: Record<string, Reaction> = {
     ],
     explanation: 'Solid iodine sublimes directly into purple gas when heated.'
   },
+  'Fe+CuSO4': {
+    reactants: ['Fe', 'CuSO4'],
+    products: ['FeSO4', 'Cu'],
+    equation: 'Fe + CuSO₄ → FeSO₄ + Cu',
+    effects: [
+      { type: 'color_change', value: '#dcfce7' },
+      { type: 'precipitate', value: '#b45309' }
+    ],
+    explanation: 'Iron displaces copper from copper sulfate solution, forming iron(II) sulfate and solid copper.'
+  },
+  'Li+Flame': {
+    reactants: ['Li'],
+    products: ['Li'],
+    equation: 'Li + Heat → Li*',
+    effects: [
+      { type: 'flame', value: '#ef4444' }
+    ],
+    explanation: 'Lithium ions produce a characteristic crimson red flame.'
+  },
+  'K+Flame': {
+    reactants: ['K'],
+    products: ['K'],
+    equation: 'K + Heat → K*',
+    effects: [
+      { type: 'flame', value: '#a855f7' }
+    ],
+    explanation: 'Potassium ions produce a characteristic lilac flame.'
+  },
+  'Cu+Flame': {
+    reactants: ['Cu'],
+    products: ['Cu'],
+    equation: 'Cu + Heat → Cu*',
+    effects: [
+      { type: 'flame', value: '#10b981' }
+    ],
+    explanation: 'Copper ions produce a characteristic green flame.'
+  },
+  'Ba(OH)2+NH4SCN': {
+    reactants: ['Ba(OH)2', 'NH4SCN'],
+    products: ['Ba(SCN)2', 'NH3', 'H2O'],
+    equation: 'Ba(OH)₂·8H₂O + 2NH₄SCN → Ba(SCN)₂ + 2NH₃ + 10H₂O',
+    effects: [
+      { type: 'heat', value: 'Endothermic' },
+      { type: 'smoke', value: 'Ammonia smell' }
+    ],
+    explanation: 'A highly endothermic reaction that absorbs heat, often freezing the container to a wet surface.'
+  },
+  'Zn+HCl': {
+    reactants: ['Zn', 'HCl'],
+    products: ['ZnCl2', 'H2'],
+    equation: 'Zn + 2HCl → ZnCl₂ + H₂↑',
+    effects: [
+      { type: 'bubbles', value: 'Hydrogen evolution' }
+    ],
+    explanation: 'Zinc reacts with hydrochloric acid to produce hydrogen gas.'
+  }
 };
 
 export class ReactionEngine {
