@@ -16,7 +16,6 @@ jobs:
       - name: Install Web Dependencies
         run: |
           npm install
-          npx cap init "Chemistry Lab AR" "com.example.chemlab" --web-dir dist
           npx cap add android
           npm install @tailwindcss/oxide-linux-x64-gnu
           npm install @capacitor/assets --save-dev
