@@ -1,5 +1,5 @@
 {
   "name": "AR Chemistry Lab",
   "description": "A lightweight mobile AR chemistry lab for educational experiments using AR.js and A-Frame.",
-  "requestFramePermissions": ["camera", "xr-spatial-tracking"]
+  "requestFramePermissions": ["camera", "xr-spatial-tracking", "microphone"]
 }
