@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AR Chemistry Lab</title>
+    <!-- A-Frame 1.6.0 -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <style>
+      body, html { margin: 0; overflow: hidden; font-family: sans-serif; background-color: transparent; }
+      #root { position: relative; z-index: 10; height: 100vh; width: 100vw; }
+      /* A-Frame canvas should be behind our UI */
+      .a-canvas { z-index: 0 !important; position: absolute; top: 0; left: 0; }
+      .a-enter-vr { display: none; }
+      a-scene { background: transparent !important; }
+      /* Ensure the UI overlay is clickable in WebXR */
+      #root { pointer-events: auto; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
