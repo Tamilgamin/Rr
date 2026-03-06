@@ -192,7 +192,11 @@ export default function ARView({ experiment, onBack }: ARViewProps) {
                   setPrecipitateColor(effect.value as string);
                   break;
                 case 'heat':
-                  setTemperature(prev => prev + 20);
+                  if (effect.value === 'Endothermic') {
+                    setTemperature(prev => prev - 20);
+                  } else {
+                    setTemperature(prev => prev + 20);
+                  }
                   break;
               }
             });
