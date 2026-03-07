@@ -31,7 +31,7 @@ export default function ExperimentSelector({ onSelect, onBack }: ExperimentSelec
       initial={{ y: 50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 50, opacity: 0 }}
-      className="min-h-screen bg-white p-6 relative z-20"
+      className="min-h-screen bg-white p-6 relative z-20 overflow-y-auto"
     >
       <button 
         onClick={onBack}
