@@ -24,7 +24,7 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen ${view === 'ar' ? 'bg-transparent' : 'bg-neutral-50'} text-neutral-900 overflow-hidden`}>
+    <div className={`min-h-screen ${view === 'ar' ? 'bg-transparent' : 'bg-neutral-50'} text-neutral-900`}>
       <AnimatePresence mode="wait">
         {view === 'home' && (
           <HomeScreen 
