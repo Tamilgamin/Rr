@@ -19,6 +19,8 @@ export default function ARView({ experiment, onBack }: ARViewProps) {
   const [showInfo, setShowInfo] = useState(false);
   const [isPlaced, setIsPlaced] = useState(false);
   const [isInAR, setIsInAR] = useState(false);
+  const [arMode, setArMode] = useState<'webxr' | 'arjs' | null>(null);
+  const [isWebXRSupported, setIsWebXRSupported] = useState<boolean | null>(null);
 
   // Experiment specific states
   const [liquidColor, setLiquidColor] = useState('#ffffff');
@@ -33,6 +35,22 @@ export default function ARView({ experiment, onBack }: ARViewProps) {
   const [reactionEquation, setReactionEquation] = useState('');
 
   useEffect(() => {
+    // Check for WebXR support
+    const checkWebXR = async () => {
+      const nav = navigator as any;
+      if (nav.xr) {
+        try {
+          const supported = await nav.xr.isSessionSupported('immersive-ar');
+          setIsWebXRSupported(supported);
+        } catch (e) {
+          setIsWebXRSupported(false);
+        }
+      } else {
+        setIsWebXRSupported(false);
+      }
+    };
+    checkWebXR();
+
     // Register custom components
     if (window.AFRAME) {
       if (!window.AFRAME.components['ar-hit-test-custom']) {
@@ -124,27 +142,26 @@ export default function ARView({ experiment, onBack }: ARViewProps) {
   }, [experiment, isPlaced, isInAR]);
 
   const startARSession = async () => {
-    const nav = navigator as any;
-    if (!nav.xr) {
-      alert("WebXR is not supported in this browser. Please use Chrome on Android.");
-      return;
-    }
-
-    const isSupported = await nav.xr.isSessionSupported('immersive-ar');
-    if (!isSupported) {
-      alert("AR mode is not supported on this device.");
-      return;
-    }
-
-    const sceneEl = document.querySelector('a-scene') as any;
-    if (sceneEl) {
-      try {
-        await sceneEl.enterAR();
-        setIsInAR(true);
-      } catch (err: any) {
-        console.error('Failed to enter AR:', err);
-        alert(`Could not start AR: ${err.message || 'Unknown error'}`);
+    if (isWebXRSupported) {
+      const sceneEl = document.querySelector('a-scene') as any;
+      if (sceneEl) {
+        try {
+          await sceneEl.enterAR();
+          setIsInAR(true);
+          setArMode('webxr');
+        } catch (err: any) {
+          console.error('Failed to enter AR:', err);
+          // Fallback to AR.js if WebXR fails
+          setIsInAR(true);
+          setArMode('arjs');
+          setIsPlaced(true); // In AR.js marker mode, we consider it "placed" on the marker
+        }
       }
+    } else {
+      // Use AR.js fallback
+      setIsInAR(true);
+      setArMode('arjs');
+      setIsPlaced(true);
     }
   };
 
@@ -236,65 +253,121 @@ export default function ARView({ experiment, onBack }: ARViewProps) {
     <div className={`fixed inset-0 z-30 pointer-events-none ${!isInAR ? 'bg-black' : ''}`}>
       <div className="absolute inset-0 z-0">
         <a-scene 
-          webxr="requiredFeatures: local; optionalFeatures: hit-test, dom-overlay; overlayElement: #root"
+          webxr={arMode === 'webxr' ? "requiredFeatures: local; optionalFeatures: hit-test, dom-overlay; overlayElement: #root" : "enabled: false"}
+          arjs={arMode === 'arjs' ? "sourceType: webcam; debugUIEnabled: false; trackingMethod: best;" : ""}
           vr-mode-ui="enabled: false"
           renderer="colorManagement: true; alpha: true;"
           background="transparent: true"
+          embedded={arMode === 'arjs'}
         >
           <LabEquipmentAssets />
 
-          <a-entity id="reticle" ar-hit-test-custom visible="false">
-            <a-ring rotation="-90 0 0" radius-inner="0.04" radius-outer="0.06" material="color: #10b981; opacity: 0.8; shader: flat"></a-ring>
-          </a-entity>
+          {arMode === 'webxr' && (
+            <a-entity id="reticle" ar-hit-test-custom visible="false">
+              <a-ring rotation="-90 0 0" radius-inner="0.04" radius-outer="0.06" material="color: #10b981; opacity: 0.8; shader: flat"></a-ring>
+            </a-entity>
+          )}
 
-          <a-entity id="lab-bench" visible="false">
-            {/* Main Equipment based on experiment */}
-            {experiment.id === ExperimentType.FLAME_TEST || experiment.id === ExperimentType.SUBLIMATION ? (
-              <BunsenBurner position="0 0 0" active={step > 0} flameColor={flameColor} />
-            ) : null}
+          {/* AR.js Marker Fallback */}
+          {arMode === 'arjs' ? (
+            <a-marker preset="hiro">
+              <a-entity id="lab-bench" scale="2 2 2">
+                {/* Lab Bench Content */}
+                {experiment.id === ExperimentType.FLAME_TEST || experiment.id === ExperimentType.SUBLIMATION ? (
+                  <BunsenBurner position="0 0 0" active={step > 0} flameColor={flameColor} />
+                ) : null}
 
-            <a-entity position="0 0 0">
-              {experiment.equipment.includes('Beaker') && (
-                <Beaker position="0 0 0" liquidColor={liquidColor} liquidHeight={step > 0 ? 0.8 : 0.4} />
+                <a-entity position="0 0 0">
+                  {experiment.equipment.includes('Beaker') && (
+                    <Beaker position="0 0 0" liquidColor={liquidColor} liquidHeight={step > 0 ? 0.8 : 0.4} />
+                  )}
+                  {experiment.equipment.includes('Test Tube') && (
+                    <TestTube position="0 0.05 0" liquidColor={liquidColor} liquidHeight={step > 0 ? 0.6 : 0.3} />
+                  )}
+                  {experiment.equipment.includes('Conical Flask') && (
+                    <ConicalFlask position="0 0 0" liquidColor={liquidColor} liquidHeight={step > 0 ? 0.5 : 0.2} />
+                  )}
+                  {experiment.equipment.includes('Burette') && (
+                    <Burette position="-0.1 0 0" />
+                  )}
+                  {experiment.equipment.includes('Funnel') && (
+                    <Funnel position="0 0.15 0" />
+                  )}
+                  {experiment.equipment.includes('Evaporating Dish') && (
+                    <EvaporatingDish position="0 0.1 0" />
+                  )}
+                </a-entity>
+
+                <a-entity id="reagent-bottle" position="0.2 0.05 0">
+                  <ReagentBottle label={experiment.chemicals[step] || 'REAGENT'} />
+                </a-entity>
+
+                {showBubbles && (
+                  <a-entity position="0 0.05 0" particle-system="preset: bubble; color: #fff; size: 0.01; particleCount: 20"></a-entity>
+                )}
+                {showSmoke && (
+                  <a-entity position="0 0.1 0" particle-system="preset: dust; color: #ccc; size: 0.02; particleCount: 30"></a-entity>
+                )}
+                {showPrecipitate && (
+                  <a-cylinder 
+                    radius="0.035" 
+                    height="0.02" 
+                    position="0 0.01 0" 
+                    material={`color: ${precipitateColor}; opacity: 0.9; transparent: true`}
+                  ></a-cylinder>
+                )}
+              </a-entity>
+            </a-marker>
+          ) : (
+            <a-entity id="lab-bench" visible="false">
+              {/* Main Equipment based on experiment */}
+              {experiment.id === ExperimentType.FLAME_TEST || experiment.id === ExperimentType.SUBLIMATION ? (
+                <BunsenBurner position="0 0 0" active={step > 0} flameColor={flameColor} />
+              ) : null}
+
+              <a-entity position="0 0 0">
+                {experiment.equipment.includes('Beaker') && (
+                  <Beaker position="0 0 0" liquidColor={liquidColor} liquidHeight={step > 0 ? 0.8 : 0.4} />
+                )}
+                {experiment.equipment.includes('Test Tube') && (
+                  <TestTube position="0 0.05 0" liquidColor={liquidColor} liquidHeight={step > 0 ? 0.6 : 0.3} />
+                )}
+                {experiment.equipment.includes('Conical Flask') && (
+                  <ConicalFlask position="0 0 0" liquidColor={liquidColor} liquidHeight={step > 0 ? 0.5 : 0.2} />
+                )}
+                {experiment.equipment.includes('Burette') && (
+                  <Burette position="-0.1 0 0" />
+                )}
+                {experiment.equipment.includes('Funnel') && (
+                  <Funnel position="0 0.15 0" />
+                )}
+                {experiment.equipment.includes('Evaporating Dish') && (
+                  <EvaporatingDish position="0 0.1 0" />
+                )}
+              </a-entity>
+
+              {/* Reagent Bottle */}
+              <a-entity id="reagent-bottle" position="0.2 0.05 0">
+                <ReagentBottle label={experiment.chemicals[step] || 'REAGENT'} />
+              </a-entity>
+
+              {/* Visual Effects */}
+              {showBubbles && (
+                <a-entity position="0 0.05 0" particle-system="preset: bubble; color: #fff; size: 0.01; particleCount: 20"></a-entity>
               )}
-              {experiment.equipment.includes('Test Tube') && (
-                <TestTube position="0 0.05 0" liquidColor={liquidColor} liquidHeight={step > 0 ? 0.6 : 0.3} />
+              {showSmoke && (
+                <a-entity position="0 0.1 0" particle-system="preset: dust; color: #ccc; size: 0.02; particleCount: 30"></a-entity>
               )}
-              {experiment.equipment.includes('Conical Flask') && (
-                <ConicalFlask position="0 0 0" liquidColor={liquidColor} liquidHeight={step > 0 ? 0.5 : 0.2} />
-              )}
-              {experiment.equipment.includes('Burette') && (
-                <Burette position="-0.1 0 0" />
-              )}
-              {experiment.equipment.includes('Funnel') && (
-                <Funnel position="0 0.15 0" />
-              )}
-              {experiment.equipment.includes('Evaporating Dish') && (
-                <EvaporatingDish position="0 0.1 0" />
+              {showPrecipitate && (
+                <a-cylinder 
+                  radius="0.035" 
+                  height="0.02" 
+                  position="0 0.01 0" 
+                  material={`color: ${precipitateColor}; opacity: 0.9; transparent: true`}
+                ></a-cylinder>
               )}
             </a-entity>
-
-            {/* Reagent Bottle */}
-            <a-entity id="reagent-bottle" position="0.2 0.05 0">
-              <ReagentBottle label={experiment.chemicals[step] || 'REAGENT'} />
-            </a-entity>
-
-            {/* Visual Effects */}
-            {showBubbles && (
-              <a-entity position="0 0.05 0" particle-system="preset: bubble; color: #fff; size: 0.01; particleCount: 20"></a-entity>
-            )}
-            {showSmoke && (
-              <a-entity position="0 0.1 0" particle-system="preset: dust; color: #ccc; size: 0.02; particleCount: 30"></a-entity>
-            )}
-            {showPrecipitate && (
-              <a-cylinder 
-                radius="0.035" 
-                height="0.02" 
-                position="0 0.01 0" 
-                material={`color: ${precipitateColor}; opacity: 0.9; transparent: true`}
-              ></a-cylinder>
-            )}
-          </a-entity>
+          )}
 
           <a-entity camera position="0 1.6 0"></a-entity>
         </a-scene>
@@ -308,7 +381,7 @@ export default function ARView({ experiment, onBack }: ARViewProps) {
           </button>
           <div className="text-center">
             <h2 className="font-bold text-lg">{experiment.name}</h2>
-            <p className="text-xs opacity-80">{isPlaced ? 'Experiment Active' : 'Scan Table & Tap'}</p>
+            <p className="text-xs opacity-80">{arMode === 'arjs' ? 'Point at Hiro Marker' : isPlaced ? 'Experiment Active' : 'Scan Table & Tap'}</p>
           </div>
           <button onClick={() => setShowInfo(true)} className="p-2 rounded-full bg-white/10 backdrop-blur-md">
             <Info className="w-6 h-6" />
@@ -328,9 +401,11 @@ export default function ARView({ experiment, onBack }: ARViewProps) {
                     <Zap className="w-8 h-8 text-emerald-600" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">Ready to Start?</h3>
-                  <p className="text-neutral-500 text-sm mb-6">Scan your table surface to begin.</p>
+                  <p className="text-neutral-500 text-sm mb-6">
+                    {isWebXRSupported ? 'Scan your table surface to begin.' : 'WebXR not supported. Using marker-based AR. Point your camera at a Hiro marker.'}
+                  </p>
                   <button onClick={startARSession} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg">
-                    Enter Lab
+                    {isWebXRSupported ? 'Enter Lab' : 'Start Marker AR'}
                   </button>
                 </motion.div>
               ) : (
@@ -379,41 +454,4 @@ export default function ARView({ experiment, onBack }: ARViewProps) {
               <h3 className="text-2xl font-bold mb-2">Experiment Info</h3>
               <div className="p-3 bg-blue-50 rounded-2xl border border-blue-100 mb-4 text-center font-mono text-sm font-bold text-blue-700">{reactionEquation}</div>
               <p className="text-neutral-600 text-sm leading-relaxed mb-6">{experiment.explanation}</p>
-              <h4 className="font-bold mb-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-orange-500" />Safety Tips</h4>
-              <ul className="space-y-2">{experiment.safetyTips.map((tip, i) => (<li key={i} className="text-sm text-neutral-500 flex gap-2"><span className="text-emerald-500 font-bold">•</span>{tip}</li>))}</ul>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showQuiz && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-auto">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-emerald-900/40 backdrop-blur-md" />
-            <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="relative w-full max-w-sm bg-white rounded-3xl p-8 shadow-2xl">
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><HelpCircle className="w-8 h-8 text-emerald-600" /></div>
-                <h3 className="text-2xl font-bold mb-2">Quick Quiz</h3>
-                <p className="text-neutral-500 text-sm">Test your knowledge.</p>
-              </div>
-              <div className="mb-8">
-                <p className="font-bold text-lg mb-4 text-center">{experiment.quiz.question}</p>
-                <div className="space-y-3">
-                  {experiment.quiz.options.map((option, i) => (
-                    <button key={i} onClick={() => setQuizResult(i === experiment.quiz.correctIndex)} disabled={quizResult !== null} className={`w-full p-4 rounded-2xl border text-left font-medium transition-all ${quizResult === null ? 'border-neutral-100 hover:bg-emerald-50' : i === experiment.quiz.correctIndex ? 'bg-emerald-500 text-white' : 'bg-neutral-50 text-neutral-400'}`}>{option}</button>
-                  ))}
-                </div>
-              </div>
-              {quizResult !== null && (
-                <div className="text-center">
-                  <p className={`font-bold mb-4 ${quizResult ? 'text-emerald-600' : 'text-red-500'}`}>{quizResult ? 'Correct!' : 'Try again!'}</p>
-                  <button onClick={quizResult ? onBack : resetExperiment} className="w-full py-4 bg-neutral-900 text-white rounded-2xl font-bold">{quizResult ? 'Finish Lab' : 'Retry'}</button>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
+              
