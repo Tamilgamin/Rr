@@ -454,4 +454,41 @@ export default function ARView({ experiment, onBack }: ARViewProps) {
               <h3 className="text-2xl font-bold mb-2">Experiment Info</h3>
               <div className="p-3 bg-blue-50 rounded-2xl border border-blue-100 mb-4 text-center font-mono text-sm font-bold text-blue-700">{reactionEquation}</div>
               <p className="text-neutral-600 text-sm leading-relaxed mb-6">{experiment.explanation}</p>
-              
+              <h4 className="font-bold mb-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-orange-500" />Safety Tips</h4>
+              <ul className="space-y-2">{experiment.safetyTips.map((tip, i) => (<li key={i} className="text-sm text-neutral-500 flex gap-2"><span className="text-emerald-500 font-bold">•</span>{tip}</li>))}</ul>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showQuiz && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-auto">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-emerald-900/40 backdrop-blur-md" />
+            <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="relative w-full max-w-sm bg-white rounded-3xl p-8 shadow-2xl">
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><HelpCircle className="w-8 h-8 text-emerald-600" /></div>
+                <h3 className="text-2xl font-bold mb-2">Quick Quiz</h3>
+                <p className="text-neutral-500 text-sm">Test your knowledge.</p>
+              </div>
+              <div className="mb-8">
+                <p className="font-bold text-lg mb-4 text-center">{experiment.quiz.question}</p>
+                <div className="space-y-3">
+                  {experiment.quiz.options.map((option, i) => (
+                    <button key={i} onClick={() => setQuizResult(i === experiment.quiz.correctIndex)} disabled={quizResult !== null} className={`w-full p-4 rounded-2xl border text-left font-medium transition-all ${quizResult === null ? 'border-neutral-100 hover:bg-emerald-50' : i === experiment.quiz.correctIndex ? 'bg-emerald-500 text-white' : 'bg-neutral-50 text-neutral-400'}`}>{option}</button>
+                  ))}
+                </div>
+              </div>
+              {quizResult !== null && (
+                <div className="text-center">
+                  <p className={`font-bold mb-4 ${quizResult ? 'text-emerald-600' : 'text-red-500'}`}>{quizResult ? 'Correct!' : 'Try again!'}</p>
+                  <button onClick={quizResult ? onBack : resetExperiment} className="w-full py-4 bg-neutral-900 text-white rounded-2xl font-bold">{quizResult ? 'Finish Lab' : 'Retry'}</button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
